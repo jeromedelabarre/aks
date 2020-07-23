@@ -1,0 +1,176 @@
+# ==================================================
+# Christopher LEY - christopher.ley@ibm.com - IBM
+# Build infra, deploy, and setup with GitLab
+# ==================================================
+
+#### CHRISLEY
+
+stages:
+#  - check-code
+  - init
+  - create
+  - destroy
+
+default:
+  before_script:
+#    - az login --service-principal -u ${AZURE_CLIENT_ID} -p ${AZURE_CLIENT_SECRET} --tenant ${AZURE_TENANT_ID} 
+    - echo "Environnement name = $CI_COMMIT_REF_NAME"  
+
+# ==================================================
+# Job templates
+# ==================================================
+
+######## Deployment AKS on Azure
+
+.terraform_init_job_aks_template: &terraform_init_job_aks_definition
+  tags:
+    - ibm
+    - aws
+    - azure
+    - gts
+  script:
+    - cd terraform/01-aks
+    - sed -ie 's$SET_IN_GITLAB_CI$'$CI_COMMIT_REF_NAME'$g' *.tf
+    - az login --service-principal -u ${aks_service_principal_app_id} -p ${aks_service_principal_client_secret} --tenant ${AZURE_TENANT_ID}
+    - az network vnet list --output=table | awk -F " " '{print$5}' | egrep -v "P|-" | awk -F "." '{print$1}' > vnet.list
+    - VNET_PREFIX=$(echo $((20 + $(cat vnet.list | wc -l))))
+    - echo $VNET_PREFIX
+    - sed -ie 's$FIRSTOCTET$'$VNET_PREFIX'$g' variables.tf
+    - terraform init -var-file="../../env_variables/env.tfvars"
+    - terraform plan -var-file="../../env_variables/env.tfvars"
+  image:
+    name: chrisley75/chrisley_custom:v3
+    entrypoint:
+      - '/usr/bin/env'
+      - 'PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'
+
+.terraform_apply_job_aks_template: &terraform_apply_job_aks_definition
+  tags:
+    - ibm
+    - aws
+    - azure
+    - gts
+  script:
+    - cd terraform/01-aks
+    - sed -ie 's$SET_IN_GITLAB_CI$'$CI_COMMIT_REF_NAME'$g' *.tf
+    - az login --service-principal -u ${aks_service_principal_app_id} -p ${aks_service_principal_client_secret} --tenant ${AZURE_TENANT_ID}
+    - az network vnet list --output=table | awk -F " " '{print$5}' | egrep -v "P|-" | awk -F "." '{print$1}' > vnet.list
+    - VNET_PREFIX=$(echo $((20 + $(cat vnet.list | wc -l))))
+    - echo $VNET_PREFIX
+    - sed -ie 's$FIRSTOCTET$'$VNET_PREFIX'$g' variables.tf
+    - terraform init -var-file="../../env_variables/env.tfvars"
+    - terraform apply -var-file="../../env_variables/env.tfvars" -auto-approve
+  image:
+    name: chrisley75/chrisley_custom:v3
+    entrypoint:
+      - '/usr/bin/env'
+      - 'PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'
+
+.terraform_destroy_job_aks_template: &terraform_destroy_job_aks_definition
+  tags:
+    - ibm
+    - aws
+    - azure
+    - gts
+  script:
+    - cd terraform/01-aks
+    - sed -ie 's$SET_IN_GITLAB_CI$'$CI_COMMIT_REF_NAME'$g' *.tf
+    - az login --service-principal -u ${aks_service_principal_app_id} -p ${aks_service_principal_client_secret} --tenant ${AZURE_TENANT_ID}
+    - az network vnet list --output=table | awk -F " " '{print$5}' | egrep -v "P|-" | awk -F "." '{print$1}' > vnet.list
+    - VNET_PREFIX=$(echo $((20 + $(cat vnet.list | wc -l))))
+    - echo $VNET_PREFIX
+    - sed -ie 's$FIRSTOCTET$'$VNET_PREFIX'$g' variables.tf
+    - terraform init -var-file="../../env_variables/env.tfvars"
+    - terraform destroy -auto-approve -var-file="../../env_variables/env.tfvars"
+  image:
+    name: chrisley75/chrisley_custom:v3
+    entrypoint:
+      - '/usr/bin/env'
+      - 'PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'
+
+######## Deployment ACR on Azure
+
+.terraform_apply_job_acr_template: &terraform_apply_job_acr_definition
+  tags:
+    - ibm
+    - aws
+    - azure
+    - gts
+  script:
+    - cd terraform/02-acr
+    - sed -ie 's$SET_IN_GITLAB_CI$'$CI_COMMIT_REF_NAME'$g' *.tf
+    - az login --service-principal -u ${aks_service_principal_app_id} -p ${aks_service_principal_client_secret} --tenant ${AZURE_TENANT_ID}
+    - terraform init -var-file="../../env_variables/env.tfvars"
+    - terraform apply -var-file="../../env_variables/env.tfvars" -auto-approve
+  image:
+    name: chrisley75/chrisley_custom:v3
+    entrypoint:
+      - '/usr/bin/env'
+      - 'PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'
+
+.terraform_destroy_job_acr_template: &terraform_destroy_job_acr_definition
+  tags:
+    - ibm
+    - aws
+    - azure
+    - gts
+  script:
+    - cd terraform/02-acr
+    - sed -ie 's$SET_IN_GITLAB_CI$'$CI_COMMIT_REF_NAME'$g' *.tf
+    - az login --service-principal -u ${aks_service_principal_app_id} -p ${aks_service_principal_client_secret} --tenant ${AZURE_TENANT_ID}
+    - terraform init -var-file="../../env_variables/env.tfvars"
+    - terraform destroy -auto-approve -var-file="../../env_variables/env.tfvars"
+  image:
+    name: chrisley75/chrisley_custom:v3
+    entrypoint:
+      - '/usr/bin/env'
+      - 'PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'
+
+
+# ==================================================
+# Stage: init
+# ==================================================
+
+aks-azure-init-test-plan:
+  <<: *terraform_init_job_aks_definition
+  stage: init
+
+# ==================================================
+# Stage: create
+# ==================================================
+
+# Deploy automaticaly
+aks-k8s-azure-deploy-job:
+  <<: *terraform_apply_job_aks_definition
+  stage: create
+#  when: manual
+  when: on_success
+  only:
+    - branches
+  except:
+    - prod
+
+# Deploy automaticaly
+acr-container-registry-azure-deploy-job:
+  <<: *terraform_apply_job_acr_definition
+  stage: create
+#  when: manual
+  when: on_success
+  only:
+    - branches
+  except:
+    - prod
+
+# ==================================================
+# Stage: destroy
+# ==================================================
+
+aks-k8s-azure-destroy-job:
+  <<: *terraform_destroy_job_aks_definition
+  stage: destroy
+  when: manual
+
+acr-container-registry-azure-destroy-job:
+  <<: *terraform_destroy_job_acr_definition
+  stage: destroy
+  when: manual

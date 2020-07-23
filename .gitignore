@@ -1,0 +1,3 @@
+env_variables/env.tfvars
+
+terraform/.terraform/plugins/darwin_amd64/terraform-provider-azurerm_v1.35.0_x4
