@@ -12,6 +12,7 @@ resource "azurerm_virtual_network" "poc" {
   tags = {
     environment = "poc"
     maintainer  = var.author
+    git_org     = "jeromedelabarre"
   }
 }
 

@@ -44,5 +44,6 @@ resource "azurerm_kubernetes_cluster" "poc" {
   tags = {
     environment = "poc"
     maintainer  = var.author
+    git_org     = "jeromedelabarre"
   }
 }

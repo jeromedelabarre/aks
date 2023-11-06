@@ -2,6 +2,9 @@
 resource "azurerm_resource_group" "rg-cley-aks" {
   location = var.location
   name     = var.resource_group_name
+  tags = {
+    git_org = "jeromedelabarre"
+  }
 }
 
 # User Assigned Identities 
@@ -11,5 +14,7 @@ resource "azurerm_user_assigned_identity" "cleyIdentity" {
 
   name = "cleyidentity1-SET_IN_GITLAB_CI"
 
-  tags = var.tags
+  tags = merge(var.tags, {
+    git_org = "jeromedelabarre"
+  })
 }

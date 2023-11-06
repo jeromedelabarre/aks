@@ -1,7 +1,7 @@
 resource "azurerm_kubernetes_cluster" "k8s" {
-  name       = var.aks_name
-  location   = azurerm_resource_group.rg-cley-aks.location
-  dns_prefix = var.aks_dns_prefix
+  name                = var.aks_name
+  location            = azurerm_resource_group.rg-cley-aks.location
+  dns_prefix          = var.aks_dns_prefix
   kubernetes_version  = var.kubernetes_version
   resource_group_name = azurerm_resource_group.rg-cley-aks.name
 
@@ -41,5 +41,7 @@ resource "azurerm_kubernetes_cluster" "k8s" {
   }
 
   depends_on = [azurerm_virtual_network.vnet_chrisley, azurerm_application_gateway.network]
-  tags       = var.tags
+  tags = merge(var.tags, {
+    git_org = "jeromedelabarre"
+  })
 }
