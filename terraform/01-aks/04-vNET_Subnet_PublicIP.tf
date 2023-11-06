@@ -18,7 +18,9 @@ resource "azurerm_virtual_network" "vnet_chrisley" {
     address_prefix = var.app_gateway_subnet_address_prefix
   }
 
-  tags = var.tags
+  tags = merge(var.tags, {
+    git_org = "jeromedelabarre"
+  })
 }
 
 #######################
@@ -43,11 +45,13 @@ data "azurerm_subnet" "appgwsubnet" {
 
 # Public Ip 
 resource "azurerm_public_ip" "publicIP_aks_chrisley" {
-  name                         = "publicIpAKS-SET_IN_GITLAB_CI"
-  location                     = azurerm_resource_group.rg-cley-aks.location
-  resource_group_name          = azurerm_resource_group.rg-cley-aks.name
-  allocation_method            = "Static"
-  sku                          = "Standard"
+  name                = "publicIpAKS-SET_IN_GITLAB_CI"
+  location            = azurerm_resource_group.rg-cley-aks.location
+  resource_group_name = azurerm_resource_group.rg-cley-aks.name
+  allocation_method   = "Static"
+  sku                 = "Standard"
 
-  tags = var.tags
+  tags = merge(var.tags, {
+    git_org = "jeromedelabarre"
+  })
 }

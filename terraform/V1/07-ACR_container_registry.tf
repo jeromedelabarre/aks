@@ -7,5 +7,6 @@ resource "azurerm_container_registry" "poc" {
   tags = {
     environment = "poc"
     maintainer  = var.author
+    git_org     = "jeromedelabarre"
   }
 }
